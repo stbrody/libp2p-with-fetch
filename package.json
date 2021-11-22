@@ -4,8 +4,12 @@
   "description": "js-libp2p with fetch protocol added",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "example": "node ./example.js"
   },
   "author": "",
-  "license": "MIT"
+  "license": "MIT",
+  "dependencies": {
+    "libp2p": "^0.33.0"
+  }
 }
