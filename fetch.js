@@ -1,4 +1,3 @@
-const PROTOCOL = '/libp2p/fetch/0.0.1'
 const PROTOCOL_VERSION = '0.0.1'
 const PROTOCOL_NAME = 'fetch'
 
@@ -14,6 +13,12 @@ const DATA = {
     foo: 'yay',
     bar: 'it',
     baz: 'works!'
+}
+
+async function delay(ms) {
+    return new Promise((resolve) => {
+        setTimeout(() => resolve(), ms)
+    })
 }
 
 /**
@@ -34,16 +39,36 @@ async function fetch (node, peer, key) {
 
     const request = new FetchRequest({identifier: key})
 
-    const [result] = await pipe(
+    // send message
+    await pipe(
         [FetchRequest.encode(request).finish()],
         lp.encode(),
         stream,
-        ( stream) => take(1, stream),
-        //toBuffer,
-        collect
+        consume
     )
 
-    const response = FetchResponse.decode(result)
+    await delay(1000)
+
+    // read response
+    let response
+    try {
+        const [data] = await pipe(
+            [],
+            stream,
+            lp.decode(),
+            take(1),
+            toBuffer,
+            collect
+        )
+        if (!data) {
+            throw new Error("no data received: " + data)
+        }
+        response = FetchResponse.decode(data)
+    } catch (err) {
+        //console.error('received invalid message', err)
+        throw err
+    }
+
     switch (response.status) {
         case (FetchResponse.StatusCode.OK): {
             return response.data
@@ -76,8 +101,10 @@ async function handleRequest({stream}) {
     let response
     if (DATA[request.identifier]) {
         response = new FetchResponse({status: FetchResponse.StatusCode.OK, data: DATA[request.identifier]})
+        console.log("Received valid Fetch request for data we have")
     } else {
         response = new FetchResponse({status: FetchResponse.StatusCode.NOT_FOUND})
+        console.log("Received valid Fetch request for data we don't have")
     }
 
     await pipe(
@@ -86,6 +113,7 @@ async function handleRequest({stream}) {
         stream,
         consume
     )
+    console.log('response sent')
 }
 
 /**

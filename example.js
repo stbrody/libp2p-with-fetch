@@ -62,10 +62,10 @@ async function main() {
     Fetch.mount(node1)
     Fetch.mount(node2)
 
-    //const val1 = await Fetch.fetch(node1, node2.peerId, "foo")
-    //console.log("Received value (should be 'yay': " + val1)
-    const val2 = await Fetch.fetch(node2, node1.peerId, "garbage")
-    console.log("Received what should be null: " + val2)
+    const val1 = await Fetch.fetch(node1, node2.peerId, "foo")
+    console.log("Received value (should be 'yay': " + val1)
+    //const val2 = await Fetch.fetch(node2, node1.peerId, "garbage")
+    //console.log("Received what should be null: " + val2)
 }
 
 
