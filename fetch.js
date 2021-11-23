@@ -40,40 +40,12 @@ async function fetch (node, peer, key) {
     const { stream } = await connection.newStream(protocol)
     const shake = handshake(stream)
 
-    const request = new FetchRequest({identifier: key})
-
     // send message
+    const request = new FetchRequest({identifier: key})
     shake.write(lp.encode.single(FetchRequest.encode(request).finish()))
-    // await pipe(
-    //     [FetchRequest.encode(request).finish()],
-    //     lp.encode(),
-    //     stream,
-    //     consume
-    // )
-
-    await delay(1000)
 
     // read response
     const response = FetchResponse.decode((await lp.decode.fromReader(shake.reader).next()).value.slice())
-    // let response
-    // try {
-    //     const [data] = await pipe(
-    //         [],
-    //         stream,
-    //         lp.decode(),
-    //         take(1),
-    //         toBuffer,
-    //         collect
-    //     )
-    //     if (!data) {
-    //         throw new Error("no data received: " + data)
-    //     }
-    //     response = FetchResponse.decode(data)
-    // } catch (err) {
-    //     //console.error('received invalid message', err)
-    //     throw err
-    // }
-
     switch (response.status) {
         case (FetchResponse.StatusCode.OK): {
             return new TextDecoder().decode(response.data)
@@ -90,20 +62,6 @@ async function fetch (node, peer, key) {
 async function handleRequest({stream}) {
     const shake = handshake(stream)
     const request = FetchRequest.decode((await lp.decode.fromReader(shake.reader).next()).value.slice())
-    // let request
-    // try {
-    //     const [data] = await pipe(
-    //         [],
-    //         stream,
-    //         lp.decode(),
-    //         take(1),
-    //         toBuffer,
-    //         collect
-    //     )
-    //     request = FetchRequest.decode(data)
-    // } catch (err) {
-    //     return console.error('received invalid message', err)
-    // }
 
     let response
     console.log(`Received valid Fetch request for key '${request.identifier}'`)
@@ -115,13 +73,6 @@ async function handleRequest({stream}) {
     }
 
     shake.write(lp.encode.single(FetchResponse.encode(response).finish()))
-    // await pipe(
-    //     [FetchResponse.encode(response).finish()],
-    //     lp.encode(),
-    //     stream,
-    //     consume
-    // )
-    console.log('response sent')
 }
 
 /**
