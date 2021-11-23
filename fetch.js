@@ -32,14 +32,14 @@ async function fetch (node, peer, key) {
     const connection = await node.dial(peer)
     const { stream } = await connection.newStream(protocol)
 
-    const request = new FetchRequest(key)
+    const request = new FetchRequest({identifier: key})
 
     const [result] = await pipe(
         [FetchRequest.encode(request).finish()],
         lp.encode(),
         stream,
-        (/** @type {MuxedStream} */ stream) => take(1, stream),
-        toBuffer,
+        ( stream) => take(1, stream),
+        //toBuffer,
         collect
     )
 
@@ -75,9 +75,9 @@ async function handleRequest({stream}) {
 
     let response
     if (DATA[request.identifier]) {
-        response = new FetchResponse({status: FetchResponse.status.OK, data: DATA[request.identifier]})
+        response = new FetchResponse({status: FetchResponse.StatusCode.OK, data: DATA[request.identifier]})
     } else {
-        response = new FetchResponse({status: FetchResponse.status.NOT_FOUND})
+        response = new FetchResponse({status: FetchResponse.StatusCode.NOT_FOUND})
     }
 
     await pipe(

@@ -1,7 +1,7 @@
 const Libp2p = require('libp2p')
 const TCP = require('libp2p-tcp')
 const Mplex = require('libp2p-mplex')
-const Ping = require("./ping");
+const Fetch = require("./fetch");
 const { NOISE } = require('libp2p-noise')
 const Bootstrap = require('libp2p-bootstrap')
 const MDNS = require('libp2p-mdns')
@@ -59,12 +59,13 @@ async function main() {
 
     await delay(2000)
 
-    Ping.mount(node1)
-    Ping.mount(node2)
+    Fetch.mount(node1)
+    Fetch.mount(node2)
 
-    const latency1 = await Ping.ping(node1, node2.peerId)
-    const latency2 = await Ping.ping(node2, node1.peerId)
-    console.log(`latencies: ${latency1}, ${latency2}`)
+    //const val1 = await Fetch.fetch(node1, node2.peerId, "foo")
+    //console.log("Received value (should be 'yay': " + val1)
+    const val2 = await Fetch.fetch(node2, node1.peerId, "garbage")
+    console.log("Received what should be null: " + val2)
 }
 
 
