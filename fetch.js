@@ -7,6 +7,8 @@ const { toBuffer } = require('it-buffer')
 const { collect, take, consume } = require('streaming-iterables')
 const lp = require('it-length-prefixed')
 const { FetchRequest, FetchResponse } = require('./message')
+// @ts-ignore it-handshake does not export types
+const handshake = require('it-handshake')
 
 
 const DATA = {
@@ -36,42 +38,45 @@ async function fetch (node, peer, key) {
 
     const connection = await node.dial(peer)
     const { stream } = await connection.newStream(protocol)
+    const shake = handshake(stream)
 
     const request = new FetchRequest({identifier: key})
 
     // send message
-    await pipe(
-        [FetchRequest.encode(request).finish()],
-        lp.encode(),
-        stream,
-        consume
-    )
+    shake.write(lp.encode.single(FetchRequest.encode(request).finish()))
+    // await pipe(
+    //     [FetchRequest.encode(request).finish()],
+    //     lp.encode(),
+    //     stream,
+    //     consume
+    // )
 
     await delay(1000)
 
     // read response
-    let response
-    try {
-        const [data] = await pipe(
-            [],
-            stream,
-            lp.decode(),
-            take(1),
-            toBuffer,
-            collect
-        )
-        if (!data) {
-            throw new Error("no data received: " + data)
-        }
-        response = FetchResponse.decode(data)
-    } catch (err) {
-        //console.error('received invalid message', err)
-        throw err
-    }
+    const response = FetchResponse.decode((await lp.decode.fromReader(shake.reader).next()).value.slice())
+    // let response
+    // try {
+    //     const [data] = await pipe(
+    //         [],
+    //         stream,
+    //         lp.decode(),
+    //         take(1),
+    //         toBuffer,
+    //         collect
+    //     )
+    //     if (!data) {
+    //         throw new Error("no data received: " + data)
+    //     }
+    //     response = FetchResponse.decode(data)
+    // } catch (err) {
+    //     //console.error('received invalid message', err)
+    //     throw err
+    // }
 
     switch (response.status) {
         case (FetchResponse.StatusCode.OK): {
-            return response.data
+            return new TextDecoder().decode(response.data)
         }
         case (FetchResponse.StatusCode.NOT_FOUND): {
             return null
@@ -83,36 +88,39 @@ async function fetch (node, peer, key) {
 }
 
 async function handleRequest({stream}) {
-    let request
-    try {
-        const [data] = await pipe(
-            [],
-            stream,
-            lp.decode(),
-            take(1),
-            toBuffer,
-            collect
-        )
-        request = FetchRequest.decode(data)
-    } catch (err) {
-        return console.error('received invalid message', err)
-    }
+    const shake = handshake(stream)
+    const request = FetchRequest.decode((await lp.decode.fromReader(shake.reader).next()).value.slice())
+    // let request
+    // try {
+    //     const [data] = await pipe(
+    //         [],
+    //         stream,
+    //         lp.decode(),
+    //         take(1),
+    //         toBuffer,
+    //         collect
+    //     )
+    //     request = FetchRequest.decode(data)
+    // } catch (err) {
+    //     return console.error('received invalid message', err)
+    // }
 
     let response
+    console.log(`Received valid Fetch request for key '${request.identifier}'`)
     if (DATA[request.identifier]) {
-        response = new FetchResponse({status: FetchResponse.StatusCode.OK, data: DATA[request.identifier]})
-        console.log("Received valid Fetch request for data we have")
+        const data = new TextEncoder().encode(DATA[request.identifier])
+        response = new FetchResponse({status: FetchResponse.StatusCode.OK, data})
     } else {
         response = new FetchResponse({status: FetchResponse.StatusCode.NOT_FOUND})
-        console.log("Received valid Fetch request for data we don't have")
     }
 
-    await pipe(
-        [FetchResponse.encode(response).finish()],
-        lp.encode(),
-        stream,
-        consume
-    )
+    shake.write(lp.encode.single(FetchResponse.encode(response).finish()))
+    // await pipe(
+    //     [FetchResponse.encode(response).finish()],
+    //     lp.encode(),
+    //     stream,
+    //     consume
+    // )
     console.log('response sent')
 }
 
