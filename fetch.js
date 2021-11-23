@@ -12,9 +12,8 @@ const handshake = require('it-handshake')
 
 
 const DATA = {
-    foo: 'yay',
-    bar: 'it',
-    baz: 'works!'
+    foo: 'hello world!',
+    bar: 'yay it works!',
 }
 
 async function delay(ms) {
